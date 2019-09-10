@@ -246,10 +246,9 @@ stdout_print_info(const char *msg, ...)
 	struct tm* tm;
 	char timestr[] = "HH:MM:SS";
 
-
 	t = time(NULL);
 	tm = localtime(&t);
-	strftime(timestr, sizeof(timestr), "%T", tm);
+	strftime(timestr, sizeof(timestr), "%H:%M:%S", tm);
 	printf("(%s) ", timestr);
 	va_start(ap, msg);
 	vprintf(msg, ap);

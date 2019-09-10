@@ -6,6 +6,13 @@
 #include "utils.h"
 #include "wavfile.h"
 
+#ifdef __MINGW32__
+#include <io.h> /* _setmode() */
+#include <fcntl.h> /* _O_BINARY */
+#else
+extern int errno;
+#endif
+
 typedef struct {
 	FILE *fd;
 	uint64_t total_samples;
@@ -17,62 +24,69 @@ static int      wav_close(Source *samp);
 static uint64_t wav_get_size(const Source *samp);
 static uint64_t wav_get_done(const Source *samp);
 
-extern int errno;
-
 Source*
 open_samples_file(const char *fname, unsigned samplerate, unsigned bps)
 {
 	Source *samp;
 	WavState *state;
 	struct wave_header _header;
-	FILE *fd;
+	FILE *fd = NULL;
 
 	errno = 0;
-	if ((fd = fopen(fname, "r"))) {
-		samp = safealloc(sizeof(*samp));
-		samp->_backend = safealloc(sizeof(WavState));
-		state = (WavState*)samp->_backend;
-		state->fd = fd;
-
-		assert(fread(&_header, sizeof(struct wave_header), 1, state->fd));
-
-		samp->count = 0;
-		samp->data = NULL;
-		samp->read = wav_read;
-		samp->close = wav_close;
-		samp->size = wav_get_size;
-		samp->done = wav_get_done;
-
-		/* If any of these comparisons return non-zero, the file is
-		 * not a valid WAVE file: assume raw data */
-		if (!strncmp(_header._riff, "RIFF", 4) &&
-			!strncmp(_header._filetype, "WAVE", 4) &&
-			!strncmp(_header._data, "data", 4)) {
-			samp->samplerate = (samplerate ? samplerate : _header.sample_rate);
-			samp->bps = (bps ? bps : _header.bits_per_sample);
-
-			state->total_samples = _header.subchunk2_size / _header.num_channels / (samp->bps / 8);
-		} else {
-			if (!bps) {
-				bps = 16;
-			}
-			fprintf(stderr, "Warning: input file is not a valid .wav, assuming raw %d bit data\n", bps);
-			if (!samplerate) {
-				fatal("Please specify an input samplerate (-s <samplerate>)");
-				/* Not reached */
-				return NULL;
-			}
-
-			samp->samplerate = samplerate;
-			samp->bps = bps;
-			state->total_samples = 0;
-		}
-		state->samples_read = 0;
+	if (!strcmp(fname, "-")) {
+#ifdef __MINGW32__
+			_setmode(_fileno(stdin), _O_BINARY);
+#endif
+			fd = stdin;
 	} else {
+		fd = fopen(fname, "rb");
+	}
+
+	if (!fd) {
 		fatal("Could not find specified file");
 		/* Not reached */
 		return NULL;
-    }
+	}
+
+	samp = safealloc(sizeof(*samp));
+	samp->_backend = safealloc(sizeof(WavState));
+	state = (WavState*)samp->_backend;
+	state->fd = fd;
+
+	assert(fread(&_header, sizeof(struct wave_header), 1, state->fd));
+
+	samp->count = 0;
+	samp->data = NULL;
+	samp->read = wav_read;
+	samp->close = wav_close;
+	samp->size = wav_get_size;
+	samp->done = wav_get_done;
+
+	/* If any of these comparisons return non-zero, the file is
+	 * not a valid WAVE file: assume raw data */
+	if (!strncmp(_header._riff, "RIFF", 4) &&
+		!strncmp(_header._filetype, "WAVE", 4) &&
+		!strncmp(_header._data, "data", 4)) {
+		samp->samplerate = (samplerate ? samplerate : _header.sample_rate);
+		samp->bps = (bps ? bps : _header.bits_per_sample);
+
+		state->total_samples = _header.subchunk2_size / _header.num_channels / (samp->bps / 8);
+	} else {
+		if (!bps) {
+			bps = 16;
+		}
+		fprintf(stderr, "Warning: input file is not a valid .wav, assuming raw %d bit data\n", bps);
+		if (!samplerate) {
+			fatal("Please specify an input samplerate (-s <samplerate>)");
+			/* Not reached */
+			return NULL;
+		}
+
+		samp->samplerate = samplerate;
+		samp->bps = bps;
+		state->total_samples = 0;
+	}
+	state->samples_read = 0;
 
 	return samp;
 }
