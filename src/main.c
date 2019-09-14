@@ -28,6 +28,9 @@
 
 /* Interpolator default options */
 #define INTERP_FACTOR 4
+
+/* Default frequency deviation */
+#define FREQ_DELTA 5000
 /*}}}*/
 
 static int stdout_print_info(const char *msg, ...);
@@ -51,6 +54,8 @@ main(int argc, char *argv[])
 	int batch_mode;
 	int upd_interval;
 	int quiet;
+	int center_freq;
+	int freq_delta;
 	float costas_bw;
 	float rrc_alpha;
 	unsigned interp_factor;
@@ -60,6 +65,8 @@ main(int argc, char *argv[])
 	/*}}}*/
 	/* Initialize the parameters that can be overridden with command-line args {{{*/
 	batch_mode  = 0;
+	center_freq = 0;
+	freq_delta = FREQ_DELTA;
 	bps = 0;
 	rrc_alpha = RRC_ALPHA;
 	samplerate = 0;
@@ -93,6 +100,12 @@ main(int argc, char *argv[])
 			batch_mode = 1;
 			upd_interval = SLEEP_INTERVAL;
 			log = stdout_print_info;
+			break;
+		case 'c':
+			center_freq = dehumanize(optarg);
+			break;
+		case 'd':
+			freq_delta = dehumanize(optarg);
 			break;
 		case 'f':
 			rrc_order = atoi(optarg);
@@ -173,16 +186,18 @@ main(int argc, char *argv[])
 
 	/* OQPSK seems to require lower bandwidths */
 	if (mode == OQPSK) {
+		center_freq /= 2;
+		freq_delta /= 2;
 		costas_bw /= 5;
 	}
 
 	/* Initialize the demodulator */
-	demod = demod_init(raw_samp, interp_factor, rrc_order, rrc_alpha, costas_bw, symbol_rate, mode);
+	demod = demod_init(raw_samp, interp_factor, rrc_order, rrc_alpha, costas_bw,
+	                   symbol_rate, mode, center_freq, freq_delta);
 	demod_start(demod, out_fname);
 	if (!quiet) {
 		log("Demodulator initialized\n");
 	}
-
 
 	/* Initialize the struct that will be the argument to nanosleep() */
 	timespec.tv_sec = upd_interval/1000;

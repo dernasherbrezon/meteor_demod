@@ -12,20 +12,19 @@
 /* Costas loop default parameters */
 #define COSTAS_BW 100
 #define COSTAS_DAMP 1/M_SQRT2
-#define COSTAS_INIT_FREQ 0.001
-#define FREQ_MAX 0.8
 #define AVG_WINSIZE 25000
 
 typedef struct {
 	float nco_phase, nco_freq;
 	float alpha, beta;
 	float damping, bw;
+	float center, max_delta;
 	int locked;
 	float moving_avg;
 	ModScheme mode;
 } Costas;
 
-Costas*       costas_init(float bw, ModScheme mode);
+Costas*       costas_init(float bw, ModScheme mode, float center_freq, float max_delta);
 float complex costas_resync(Costas *self, float complex samp);
 float complex costas_mix(Costas *self, float complex samp);
 void          costas_free(Costas *self);

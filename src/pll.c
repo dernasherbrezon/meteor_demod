@@ -9,14 +9,14 @@ inline float lut_tanh(float val);
 
 /* Initialize a Costas loop for carrier frequency/phase recovery */
 Costas*
-costas_init(float bw, ModScheme mode)
+costas_init(float bw, ModScheme mode, float center_freq, float max_delta)
 {
 	int i;
 	Costas *costas;
 
 	costas = safealloc(sizeof(*costas));
 
-	costas->nco_freq = COSTAS_INIT_FREQ;
+	costas->nco_freq = center_freq;
 	costas->nco_phase = 0;
 
 	costas_recompute_coeffs(costas, COSTAS_DAMP, bw);
@@ -24,6 +24,8 @@ costas_init(float bw, ModScheme mode)
 	costas->damping = COSTAS_DAMP;
 	costas->bw = bw;
 	costas->mode = mode;
+	costas->center = center_freq;
+	costas->max_delta = max_delta;
 
 	costas->moving_avg = 1;
 	costas->locked = 0;
@@ -44,7 +46,7 @@ costas_mix(Costas *self, float complex samp)
 
 	nco_out = cexp(-I*self->nco_phase);
 	retval = samp * nco_out;
-	self->nco_phase += self->nco_freq;
+	self->nco_phase = fmod(self->nco_phase + self->nco_freq, 2*M_PI);
 
 	return retval;
 }
@@ -78,10 +80,10 @@ costas_correct_phase(Costas *self, float err)
 	}
 
 	/* Limit frequency to a sensible range */
-	if (self->nco_freq <= -FREQ_MAX) {
-		self->nco_freq = -FREQ_MAX/2;
-	} else if (self->nco_freq >= FREQ_MAX) {
-		self->nco_freq = FREQ_MAX/2;
+	if (self->nco_freq <= self->center-self->max_delta) {
+		self->nco_freq = self->center-self->max_delta/2;
+	} else if (self->nco_freq >= self->center+self->max_delta) {
+		self->nco_freq = self->center+self->max_delta/2;
 	}
 }
 

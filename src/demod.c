@@ -17,9 +17,10 @@ static void* demod_thr_qpsk(void* args);
 static void* demod_thr_oqpsk(void* args);
 
 Demod*
-demod_init(Source *src, unsigned interp_mult, unsigned rrc_order, float rrc_alpha, float pll_bw, unsigned sym_rate, ModScheme mode)
+demod_init(Source *src, unsigned interp_mult, unsigned rrc_order, float rrc_alpha, float pll_bw, unsigned sym_rate, ModScheme mode, int center_freq, int max_freq_delta)
 {
 	Demod *ret;
+	float center_rad, max_rad_delta;
 
 	ret = safealloc(sizeof(*ret));
 
@@ -34,8 +35,12 @@ demod_init(Source *src, unsigned interp_mult, unsigned rrc_order, float rrc_alph
 	ret->interp->read(ret->interp, rrc_order*interp_mult);
 
 	/* Initialize Costas loop */
+	center_rad = (float)center_freq*2*M_PI/(sym_rate);
+	max_rad_delta = (float)max_freq_delta*2*M_PI/(sym_rate);
+
+
 	pll_bw = 2*M_PI*pll_bw/sym_rate;
-	ret->cst = costas_init(pll_bw, mode);
+	ret->cst = costas_init(pll_bw, mode, center_rad, max_rad_delta);
 	ret->mode = mode;
 
 	/* Initialize the timing recovery variables */

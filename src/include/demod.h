@@ -31,7 +31,9 @@ typedef struct {
 	int8_t out_buf[SYM_CHUNKSIZE];
 } Demod;
 
-Demod*        demod_init(Source *src, unsigned interp_factor, unsigned rrc_order, float rrc_alpha, float pll_bw, unsigned sym_rate, ModScheme mode);
+Demod*        demod_init(Source *src, unsigned interp_factor, unsigned rrc_order, 
+		                 float rrc_alpha, float pll_bw, unsigned sym_rate, 
+		                 ModScheme mode, int center_freq, int max_freq_delta);
 void          demod_start(Demod *self, const char *fname);
 void          demod_join(Demod *self);
 
