@@ -1,0 +1,13 @@
+language: c
+
+arch:
+  - arm64
+
+install: make
+  
+compiler:
+  - gcc
+  
+script:
+  - set -e
+  - make
