@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <math.h>
 #include "pll.h"
-#include "tui.h"
 #include "utils.h"
 
 static float* _lut_tanh;

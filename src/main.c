@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include "demod.h"
 #include "options.h"
-#include "tui.h"
 #include "utils.h"
 #include "wavfile.h"
 
@@ -48,7 +47,6 @@ main(int argc, char *argv[])
 	int symbol_rate;
 	int samplerate;
 	int bps;
-	int batch_mode;
 	int upd_interval;
 	int quiet;
 	float costas_bw;
@@ -59,12 +57,11 @@ main(int argc, char *argv[])
 	int (*log)(const char *msg, ...);
 	/*}}}*/
 	/* Initialize the parameters that can be overridden with command-line args {{{*/
-	batch_mode  = 0;
 	bps = 0;
 	rrc_alpha = RRC_ALPHA;
 	samplerate = 0;
 	quiet = 0;
-	log = tui_print_info;
+	log = stdout_print_info;
 	upd_interval = UPD_INTERVAL;
 	symbol_rate = SYM_RATE;
 	costas_bw = COSTAS_BW;
@@ -88,11 +85,6 @@ main(int argc, char *argv[])
 			break;
 		case 'b':
 			costas_bw = atof(optarg);
-			break;
-		case 'B':
-			batch_mode = 1;
-			upd_interval = SLEEP_INTERVAL;
-			log = stdout_print_info;
 			break;
 		case 'f':
 			rrc_order = atoi(optarg);
@@ -159,13 +151,6 @@ main(int argc, char *argv[])
 		fatal("Couldn't open samples file");
 	}
 
-	/* Initialize the UI */
-	if (!batch_mode) {
-		tui_init(upd_interval);
-	} else if (!quiet) {
-		splash();
-	}
-
 	if (!quiet) {
 		log("Input: %s, output: %s\n", argv[optind], out_fname);
 		log("Input samplerate: %d\n", raw_samp->samplerate);
@@ -196,22 +181,12 @@ main(int argc, char *argv[])
 		gain = demod_get_gain(demod);
 		pll_locked = demod_is_pll_locked(demod);
 
-		if (batch_mode) {
-			if (!quiet) {
-				log("(%5.1f%%) Carrier: %+7.1f Hz, Locked: %s\n",
-					(float)in_done/in_total*100, freq, pll_locked ? "Yes" : "No");
-			}
-			nanosleep(&timespec, NULL);
-		} else {
-			if (tui_process_input()) {
-				/* Exit on user request */
-				break;
-			}
-			tui_update_file_in(raw_samp->samplerate, in_done, in_total);
-			tui_update_data_out(demod_get_bytes_out(demod));
-			tui_update_pll(freq, pll_locked, gain);
-			tui_draw_constellation(demod_get_buf(demod), 256);
+		if (!quiet) {
+			log("(%5.1f%%) Carrier: %+7.1f Hz, Locked: %s\n",
+				(float)in_done/in_total*100, freq, pll_locked ? "Yes" : "No");
 		}
+		nanosleep(&timespec, NULL);
+		
 	}
 
 	if (!quiet) {
@@ -226,12 +201,6 @@ main(int argc, char *argv[])
 	raw_samp->close(raw_samp);
 	if (free_fname_on_exit) {
 		free(out_fname);
-	}
-
-	if (!batch_mode) {
-		log("Press any key to exit...\n");
-		tui_wait_for_user_input();
-		tui_deinit();
 	}
 
 	return 0;
