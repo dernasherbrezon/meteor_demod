@@ -133,10 +133,6 @@ main(int argc, char *argv[])
 		}
 	}
 
-	/* Check if input filename was provided */
-	if (argc - optind < 1) {
-		usage(argv[0]);
-	}
 	/*}}}*/
 
 	/* If no filename was specified, generate one */
@@ -146,7 +142,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Open raw samples file */
-	raw_samp = open_samples_file(argv[optind], samplerate, bps);
+	raw_samp = open_samples_file(samplerate, bps);
 	if (!raw_samp) {
 		fatal("Couldn't open samples file");
 	}

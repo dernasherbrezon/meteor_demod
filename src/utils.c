@@ -111,7 +111,7 @@ dehumanize(const char *buf)
 void
 usage(const char *pname)
 {
-	fprintf(stderr, "Usage: %s [options] file_in\n", pname);
+	fprintf(stderr, "Usage: %s [options]\n", pname);
 	fprintf(stderr,
 	        "   -o, --output <file>     Output decoded symbols to <file>\n"
 	        "   -r, --symrate <rate>    Set the symbol rate to <rate> (default: 72000)\n"
