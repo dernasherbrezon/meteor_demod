@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ru.r2cloud</groupId>
 	<artifactId>r2cloud-meteor_demod</artifactId>
-	<version>0.3-beta1-5</version>
+	<version>0.3-beta1-6</version>
 	<name>Meteor demodulator</name>
 	<description>Custom built meteor_demod</description>
 	<inceptionYear>2019</inceptionYear>
